@@ -12,11 +12,9 @@ app.Boss = function(){
 		this.radius = 30;
 		this.health = 10;
 		this.dead = false;
-		this.bullets = [];
 		this.enemies = [];
 		this.fireCoolDown = 0;
-		this.movementSpeed = 200;
-		
+
 		this.location = vec2.fromValues(x,y);
 		this.velocity = vec2.create();
 		this.acceleration = vec2.create();
@@ -28,6 +26,7 @@ app.Boss = function(){
 			case 0:
 				this.fireRate = 0.5;
 				this.maxSpeed = 10;
+				this.damage = 1;
 			break;
 			case 1:
 				this.fireRate = 0.3;
@@ -35,19 +34,21 @@ app.Boss = function(){
 				for(var i = 0; i < 5; i ++){
 					this.createEnemy();
 				}
+				this.damage = 1.2;
 			break;
 		}
 	};
-	
+
 	var p = Boss.prototype;
-	
+
 	p.update = function(dt){
 		if(!this.dead){
 			if(this.health <= 0){
 				this.dead = true;
+				app.Main.enemiesLeft --;
 				app.Main.gameObjects.push(new app.Powerup(this.location[0],this.location[1],"fireRate","rgb(255,255,50)"));
 			}
-			
+
 			switch(this.difficulty){
 				case 0:
 					this.difficulty1(dt);
@@ -57,33 +58,20 @@ app.Boss = function(){
 				break;
 			}
 
-			for(var i = 0; i < this.bullets.length; i++){
-				this.bullets[i].update(dt);
-				if(app.Main.circleCollision(this.bullets[i],app.Main.entity)){
-					this.bullets[i].remove = true;
-					app.Main.entity.hit = true;
-					app.Main.entity.health --;
-				}
-				if(this.bullets[i].remove){
-	    			this.bullets.splice(i,1);
-	    			i -= 1;
-	    		}
-			}
-
 			if(this.fireCoolDown >= this.fireRate){
 				this.fire = true;
 				this.fireCoolDown = 0;
 				var bulletDirection = app.Main.calculateBulletDirection(this.location,app.Main.entity.location,10);
 				bulletDirection[0] += Math.random() * 2 - 1;
 				bulletDirection[1] += Math.random() * 2 - 1;
-				this.bullets.push(new app.Bullet(this.location[0],this.location[1],
-					bulletDirection,"enemyBullet",this.col));
+				app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
+					bulletDirection,this.damage,this.col));
 			}
 
-			//adds to fireCoolDown 
+			//adds to fireCoolDown
 			this.fireCoolDown += dt;
 
-		//drop the loot	
+		//drop the loot
 		}else{
 			if(this.enemies.length <= 0){
 				this.remove = true;
@@ -98,13 +86,10 @@ app.Boss = function(){
     		}
 		}
 	};
-	
+
 	p.render = function(ctx,topctx){
 		if(!this.dead){
 			app.draw.circle(topctx,this.location[0],this.location[1],this.radius,this.col);
-			for(var i = 0; i < this.bullets.length; i++){
-				this.bullets[i].render(topctx);
-			}
 		}
 		for(var i = 0; i < this.enemies.length; i++){
 			this.enemies[i].render(topctx);
@@ -146,14 +131,14 @@ app.Boss = function(){
 	p.checkInternalCollisions = function(bullet){
 
 		if(app.Main.circleCollision(this,bullet)){
-			this.health --;
-			this.radius --;
+			this.health -= bullet.damage;
+			this.radius -= bullet.damage;
 			bullet.remove = true;
 		}
 
 		for(var i = 0; i < this.enemies.length; i++){
 			if(app.Main.circleCollision(this.enemies[i],bullet)){
-				this.enemies[i].health --;
+				this.enemies[i].health -= bullet.damage;
 				bullet.remove = true;
 			}
 		}

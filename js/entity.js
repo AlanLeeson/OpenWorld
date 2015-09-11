@@ -13,7 +13,9 @@ app.Entity = function(){
 		this.blinkDuration = 50;
 		this.blinkRate = 0;
 		this.health = 20;
-		this.movementSpeed = 350;
+		this.maxHealth = 20;
+		this.movementSpeed = 300;
+		this.damage = 2;
 		//a bullet will fire every quarter second
 		this.fireRate = 0.25;
 		//this updates intil it reaches 0.25
@@ -32,14 +34,14 @@ app.Entity = function(){
 		this.xp = 0;
 		this.xpCap = 20;
 	};
-	
+
 	var p = Entity.prototype;
-	
+
 	p.update = function(dt, keydown){
 
 		this.handleKeyboardInput(dt,keydown);
 
-		//adds to fireCoolDown 
+		//adds to fireCoolDown
 		this.fireCoolDown += 1 * dt;
 		//when the entity can fire
 		if(this.fireCoolDown >= this.fireRate){
@@ -55,7 +57,7 @@ app.Entity = function(){
 			}
 		}
 	};
-	
+
 	p.render = function(ctx){
 		if(this.hit){
 			if(this.blinkRate >= this.blinkDuration){
@@ -84,6 +86,14 @@ app.Entity = function(){
 		this.health = 20;
 	};
 
+	p.levelUp = function(){
+		this.level ++;
+		this.health *= 1.075;
+		this.movementSpeed *= 1.05;
+		this.xpCap *= 1.3;
+		this.xp = 0;
+	};
+
 	p.handleKeyboardInput = function(dt,keydown){
 		if(keydown[this.KEYBOARD.KEY_LEFT]){
 			this.location[0] -= dt * this.movementSpeed;
@@ -97,8 +107,20 @@ app.Entity = function(){
 		if(keydown[this.KEYBOARD.KEY_DOWN]){
 			this.location[1] += dt * this.movementSpeed;
 		}
+
+		if(this.location[0] <= app.Main.worldSize[0]*(-400)-200-this.radius*2){
+			this.location[0] = app.Main.worldSize[0]*(-400)-200-this.radius*2;
+		}else if(this.location[0] >= app.Main.worldSize[0]*400+200+this.radius*2){
+			this.location[0] = app.Main.worldSize[0]*400+200+this.radius*2;
+		}
+		if(this.location[1] <= app.Main.worldSize[1]*(-400)-200-this.radius*2){
+			this.location[1] = app.Main.worldSize[1]*(-400)-200-this.radius*2;
+		}else if(this.location[1] >= app.Main.worldSize[1]*400+200+this.radius*2){
+			this.location[1] = app.Main.worldSize[1]*400+200+this.radius*2;
+		}
+
 	};
-	
+
 	return Entity;
 
 }();

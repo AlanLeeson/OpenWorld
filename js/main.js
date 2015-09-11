@@ -10,7 +10,14 @@ app.Main = {
 	topctx : undefined,
 	canvasWidth : 750,
 	canvasHeight : 600,
-	
+
+	GAME_STATE_MENU : 0,
+	GAME_STATE_PAUSED : 1,
+	GAME_STATE_TUTORIAL : 2,
+	GAME_STATE_PLAY : 3,
+
+	gameState : 3,
+
 	//var used for finding dt
 	updatedTime : 0,
 	FPS : 0,
@@ -18,127 +25,196 @@ app.Main = {
 	canvasOffset : undefined,
 	offsetX : 0,
 	offsetY : 0,
-	paused : false,
 	keydown : [],
 	firing : false,
 	bulletSpeed : 10,
 
 	viewDistance : 700,
-	
+
 	entity : undefined,
 	gameObjects : [],
 	bullets : [],
+	enemyBullets : [],
+	worldSize : undefined,
+	enemiesLeft : 0,
 
 	init : function(){
-		
+
 		//assign the canvas and the canvas context
 		this.topCanvas = document.querySelector('#foreground');
 		this.topctx = this.topCanvas.getContext('2d');
 		this.canvas = document.querySelector('#background');
 		this.ctx = this.canvas.getContext('2d');
 		this.mousePos = vec2.create();
-		
+		this.worldSize = vec2.fromValues(4,4);
+
 		this.canvasOffset = document.getElementsByTagName('canvas')[0].getBoundingClientRect();
 		this.offsetX = this.canvasOffset.left;
 		this.offsetY = this.canvasOffset.top;
-		
+
 		document.getElementsByTagName('canvas')[0].onmousedown = function(e){app.Main.handleMouseDown(e)};
 		document.getElementsByTagName('canvas')[0].onmouseup = function(e){app.Main.handleMouseUp(e)};
 		document.getElementsByTagName('canvas')[0].onmousemove = function(e){app.Main.handleMouseMove(e)};
 
 		this.entity = new app.Entity(0,0);
-		
+
 		this.createWorld();
 
 		//call the game loop to start the game
 		this.gameLoop();
 	},
-	
+
 	//loops the game
 	gameLoop : function(){
 		//calls this method every frame
 		requestAnimationFrame(this.gameLoop.bind(this));
-		if(!this.paused){
-    		this.update();
-    	}
-    	this.render(this.ctx,this.topctx);
+		if(!this.gameState !== this.GAME_STATE_PAUSED){
+    	this.update();
+    }
+    this.render(this.ctx,this.topctx);
 	},
-	
+
 	//renders all objects in the game
 	render : function(ctx,topctx){
+
 		app.draw.rect(ctx,0,0,this.canvas.width,this.canvas.height,"#aaa");
 		topctx.clearRect(0,0,this.canvas.width,this.canvas.height);
 
+		//save the context
 		ctx.save();
 		topctx.save();
-		ctx.translate(-this.entity.location[0] + this.canvasWidth/2,-this.entity.location[1] + this.canvasHeight/2);
-		topctx.translate(-this.entity.location[0] + this.canvasWidth/2,-this.entity.location[1] + this.canvasHeight/2);
-		for(var i = 0; i < this.gameObjects.length; i++){
-			if(this.withinViewOfPlayer(this.gameObjects[i].location,this.entity.location))
-			this.gameObjects[i].render(ctx,topctx);
-		}
-		for(var i = 0; i < this.bullets.length; i++){
-			this.bullets[i].render(ctx);
-		}
 
-		this.entity.render(ctx);
-		app.draw.circle(ctx,this.mousePos[0],this.mousePos[1],5,"#c00");
-		ctx.restore(); 
-		topctx.restore();
-		if(this.paused){
-			this.renderPause(topctx);
-		}
-		else{
-			this.renderUI(topctx);
-		}
-		//app.draw.text(topctx,parseInt(this.FPS),30,30,30,'#000');
-	},
-	
-	//updates the objects in the game
-	update : function(){
-		//find deltaTime
-		var dt  = this.calculateDeltaTime();
-		//update the player
-		this.entity.update(dt,this.keydown);
-
-		//update the game objects
-		for(var i = 0; i < this.gameObjects.length; i++){
-			if(this.withinViewOfPlayer(this.gameObjects[i].location,this.entity.location)){
-				this.gameObjects[i].update(dt);
-				if(this.gameObjects[i].type == "base" || this.gameObjects[i].type == "boss"){
-					for(var j = 0; j < this.bullets.length; j++){
-						if(this.gameObjects[i].type == "base" ){
-							if(this.circleCollision(this.bullets[j],this.gameObjects[i])){
-								this.gameObjects[i].checkInternalCollisions(this.bullets[j])
-							}
-						}
-						else if(this.gameObjects[i].type == "boss"){
-							this.gameObjects[i].checkInternalCollisions(this.bullets[j])
-						}
-					}
+		switch(this.gameState){
+			case this.GAME_STATE_MENU:
+			break;
+			case this.GAME_STATE_PAUSED:
+				this.renderPause(topctx);
+			case this.GAME_STATE_PLAY:
+				//translate the screens
+				ctx.translate(-this.entity.location[0] + this.canvasWidth/2,-this.entity.location[1]
+					+ this.canvasHeight/2);
+				topctx.translate(-this.entity.location[0] + this.canvasWidth/2,-this.entity.location[1]
+					 + this.canvasHeight/2);
+				//loop through the game objects
+				for(var i = 0; i < this.gameObjects.length; i++){
+					if(this.withinViewOfPlayer(this.gameObjects[i].location,this.entity.location))
+					this.gameObjects[i].render(ctx,topctx);
 				}
 
+				//loop through players bullets
+				for(var i = 0; i < this.bullets.length; i++){
+					this.bullets[i].render(ctx);
+				}
+
+				//loop through enemy bullets
+				for(var i = 0; i < this.enemyBullets.length; i++){
+					this.enemyBullets[i].render(ctx);
+				}
+
+				//render the entity
+				this.entity.render(ctx);
+				app.draw.circle(ctx,this.mousePos[0],this.mousePos[1],5,"#c00");
+
+				//restore the context
+				ctx.restore();
+				topctx.restore();
+
+				this.renderUI(topctx);
+			break;
+		}
+	},
+
+	//updates the objects in the game
+	update : function(){
+
+		switch(this.gameState){
+			case this.GAME_STATE_MENU:
+			break;
+			case this.GAME_STATE_PAUSED:
+			break;
+			case this.GAME_STATE_PLAY:
+				this.checkEndLevel();
+				//find deltaTime
+				var dt  = this.calculateDeltaTime();
+				//update the player
+				this.entity.update(dt,this.keydown);
+
+				//update the game objects
+				this.updateGameObjects(dt);
+
+				//loop through all the enemyBullets on screen
+				this.updateEnemyBullets(dt);
+
+				//go through the bullets and move them
+				for(var i = 0; i < this.bullets.length; i++){
+					this.bullets[i].update(dt);
+					if(this.bullets[i].remove){
+		    			this.bullets.splice(i,1);
+		    			i -= 1;
+		    		}
+				}
+
+				//when the player is holding down the click button
+				if(this.firing && this.entity.fire){
+					this.bullets.push(new app.Bullet(this.entity.location[0],this.entity.location[1],
+		    			this.calculateBulletDirection(this.entity.location,this.mousePos,10),this.entity.damage,"#7E0058"));
+		    		this.entity.fire = false;
+		    }
+			break;
+		}
+	},
+
+	updateGameObjects : function(dt){
+		for(var i = 0; i < this.gameObjects.length; i++){
+			//check to see if the gameobject is in view
+			if(this.withinViewOfPlayer(this.gameObjects[i].location,this.entity.location)){
+				this.gameObjects[i].update(dt);
+				//checks if the object is a base or a boss
+				if(this.gameObjects[i].type == "base" || this.gameObjects[i].type == "boss"){
+					//loop through the player bullets to check collisions
+					for(var j = 0; j < this.bullets.length; j++){
+						//if the object is a base
+						if(this.gameObjects[i].type == "base" ){
+							//checks if the bullets land inside the square
+							if(this.circleCollision(this.bullets[j],this.gameObjects[i])){
+								//if so, check if the bullets hit any enemies
+								this.gameObjects[i].checkInternalCollisions(this.bullets[j])
+							}
+						}//end of if base
+						//if object is a boss
+						else if(this.gameObjects[i].type == "boss"){
+							//checks if the bullets hit the boss
+							this.gameObjects[i].checkInternalCollisions(this.bullets[j])
+						}//end of elseif
+					}//end of for through bullets
+				}//end of if base or boss
+
+				//if those objects are ready are dead, remove them
 				if(this.gameObjects[i].remove){
 	    			this.gameObjects.splice(i,1);
 	    			i -= 1;
-	    		}
-    		}
-		}
+	    	}//end of if
+  		}//end of if within view
+		}//end of loop
+	},
 
-		for(var i = 0; i < this.bullets.length; i++){
-			this.bullets[i].update(dt);
-			if(this.bullets[i].remove){
-    			this.bullets.splice(i,1);
-    			i -= 1;
-    		}
+	updateEnemyBullets : function(dt){
+		for(var i = 0; i < this.enemyBullets.length; i++){
+			this.enemyBullets[i].update(dt);
+			if(this.circleCollision(this.enemyBullets[i],this.entity)){
+				this.playerHit(this.enemyBullets[i]);
+			}
+			if(this.enemyBullets[i].remove){
+					this.enemyBullets.splice(i,1);
+					i -= 1;
+			}
 		}
+	},
 
-		//when the player is holding down the click button
-		if(this.firing && this.entity.fire){
-			this.bullets.push(new app.Bullet(this.entity.location[0],this.entity.location[1],
-    			this.calculateBulletDirection(this.entity.location,this.mousePos,10),"entityBullet","#7E0058"));
-    		this.entity.fire = false;
-    	}
+	playerHit : function(bullet){
+		bullet.remove = true;
+		this.entity.hit = true;
+		this.entity.health -= bullet.damage;
 	},
 
 	withinViewOfPlayer : function(loc1,loc2){
@@ -146,6 +222,14 @@ app.Main = {
 		var dy = loc1[1] - loc2[1];
 		var distance = Math.sqrt(dx*dx + dy*dy);
 		return distance < this.viewDistance;
+	},
+
+	checkEndLevel : function(){
+		if(this.enemiesLeft <= 0){
+			this.worldSize[0] ++;
+			this.worldSize[1] ++;
+			this.resetWorld();
+		}
 	},
 
 	//calculates the velocity for a bullet
@@ -164,7 +248,7 @@ app.Main = {
 		//return the vector
 		return distance;
 	},
-	
+
 	calculateDeltaTime : function(){
 		var now, fps;
 		now = (+new Date);
@@ -176,14 +260,15 @@ app.Main = {
 	},
 
 	createWorld : function(){
-		for(var i = -20; i < 20; i++){
-			for(var j = -20; j < 20; j++){
-				if(parseInt(Math.random()*3) % 3 == 0 && 
-				  (i != 0 && j != 0)){
+		for(var i = -this.worldSize[0]; i <= this.worldSize[0]; i++){
+			for(var j = -this.worldSize[1]; j <= this.worldSize[1]; j++){
+				if(parseInt(Math.random()*3) % 3 == 0 &&
+				  (i != 0 || j != 0)){
 					this.createBase(i*400,j*400);
-
+					this.enemiesLeft ++;
 					if(parseInt(Math.random() * 6)%6 == 0 && (i > 2 || i < -2) && (j > 2 || j < -2)){
 						this.createBoss(i*400,j*400,parseInt(Math.random()*2));
+						this.enemiesLeft ++;
 					}
 				}
 				else{
@@ -225,11 +310,11 @@ app.Main = {
 		var distance = Math.sqrt(dx*dx + dy*dy);
 		return distance < circle1.radius + circle2.radius;
 	},
-	
+
 	clamp : function(val,min,max){
 		return Math.max(min,Math.min(max,val));
 	},
-	
+
 	handleMouseDown : function(e){
 		this.firing = true;
     	this.mousePos[0] = parseInt(e.clientX-this.offsetX + this.entity.location[0] - this.canvasWidth/2);
@@ -251,7 +336,11 @@ app.Main = {
 
 	handleKeyDown : function(){
 		if(this.keydown[82]){
-			this.paused = !this.paused;
+			if(this.gameState === this.GAME_STATE_PAUSED){
+				this.gameState = this.GAME_STATE_PLAY;
+			}else{
+				this.gameState = this.GAME_STATE_PAUSED;
+			}
 		}
 		if(this.keydown[32]){
 			this.firing = true;
@@ -266,31 +355,23 @@ app.Main = {
 
 	renderUI : function(ctx){
 		//represents health
-		app.draw.rect(ctx,0,this.canvasHeight-30,this.entity.health*15,20,"rgba(200,50,0,0.7)");
+		//app.draw.rect(ctx,100,this.canvasHeight-20,(this.canvasWidth-200)*(this.entity.maxHealth/this.entity.health),20,"rgba(200,50,0,0.7)");
+		app.draw.rect(ctx,0,this.canvasHeight-20,this.entity.health*15,20,"rgba(200,50,0,0.7)");
 		//represents firerate
 		//text: function(ctx,string,x,y,size,col){
 		app.draw.text(ctx,"Fire Rate " + this.entity.fireRate + "%",0,this.canvasHeight-40,15,"rgba(20,20,20,0.8)");
 		//app.draw.rect(ctx,0,440,this.entity.fireRate*150,20,"rgba(20,20,20,0.8)");
-		app.draw.text(ctx,"Level " + this.entity.level,this.canvasWidth/2-25,20,20,"#000");
-		app.draw.rect(ctx,100,50,this.canvasWidth-200,20,"rgba(50,50,50,0.5)");
-		app.draw.rect(ctx,100,50,(this.canvasWidth-200)*(this.entity.xp/this.entity.xpCap),20,"rgb(120,80,0)");
+		app.draw.text(ctx,"Level " + this.entity.level,this.canvasWidth/2-35,25,25,"#000");
+		app.draw.rect(ctx,100,40,this.canvasWidth-200,20,"rgba(50,50,50,0.5)");
+		app.draw.rect(ctx,100,40,(this.canvasWidth-200)*(this.entity.xp/this.entity.xpCap),20,"rgb(120,80,0)");
 	},
 
 	renderPause : function(ctx){
 		app.draw.rect(ctx,0,0,this.canvasWidth,this.canvasHeight,"rgba(80,80,80,0.5)");
 		app.draw.text(ctx,"PAUSED",this.canvasWidth/4 + 30,this.canvasHeight/2,75,"#fff");
 		app.draw.text(ctx,"Use W A S D to move.",this.canvasWidth/4 + 60,this.canvasHeight/2+50,25,"#ddd");
-		app.draw.text(ctx,"Press '_' to fire continuously.",this.canvasWidth/4 + 10,this.canvasHeight/2+90,25,"#ddd");	
-		app.draw.text(ctx,"Aim bullets with the mouse.",this.canvasWidth/4 + 20,this.canvasHeight/2+130,25,"#ddd");	
+		app.draw.text(ctx,"Press '_' to fire continuously.",this.canvasWidth/4 + 10,this.canvasHeight/2+90,25,"#ddd");
+		app.draw.text(ctx,"Aim bullets with the mouse.",this.canvasWidth/4 + 20,this.canvasHeight/2+130,25,"#ddd");
 	}
 
 };
-
-window.addEventListener("keydown", function(e){
-	app.Main.keydown[e.keyCode] = true;
-	app.Main.handleKeyDown();
-});
-window.addEventListener("keyup", function(e){
-	app.Main.keydown[e.keyCode] = false;
-	app.Main.handleKeyUp();
-});

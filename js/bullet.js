@@ -4,21 +4,20 @@ var app = app || {};
 
 app.Bullet = function(){
 
-	var Bullet = function(x,y,force,type,col){
-		this.type = type;
+	var Bullet = function(x,y,speed,damage,col){
+		this.type = "bullet";
+		this.damage = damage;
 		this.col = col;
-		this.force = force;
-		this.radius = 5;
-		this.movementSpeed = 200;
+		this.radius = 3;
 		this.location = vec2.fromValues(x,y);
-		this.velocity = force;
+		this.velocity = speed;
 		this.acceleration = vec2.create();
 		this.lifespan = 0;
 		this.remove = false;
 	};
-	
+
 	var p = Bullet.prototype;
-	
+
 	p.update = function(dt){
 		//applyForce(this.force,this.acceleration);
 		updateLocation(this.velocity,this.acceleration,this.location);
@@ -28,7 +27,7 @@ app.Bullet = function(){
 			this.lifespan = 0;
 		}
 	};
-	
+
 	p.render = function(ctx){
 		app.draw.circle(ctx,this.location[0],this.location[1],this.radius,this.col);
 	};

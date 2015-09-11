@@ -20,20 +20,24 @@ app.Base = function(){
 			}
 		}
 	};
-	
+
 	var p = Base.prototype;
-	
+
 	p.update = function(dt){
 		for(var i = 0; i < this.enemies.length; i++){
 			this.enemies[i].update(dt);
 			if(this.enemies[i].remove){
     			this.enemies.splice(i,1);
     			i -= 1;
+
+					if(this.enemies.length <= 0){
+						this.type = "tile";
+						this.col = "rgba(128,128,128,0.8)";
+				//		this.remove = true;
+						app.Main.enemiesLeft --;
+					}
+
     		}
-		}
-		if(this.enemies.length <= 0){
-			this.type = "tile";
-			this.col = "rgba(74, 162, 2,0.8)";
 		}
 	};
 
@@ -68,7 +72,7 @@ app.Base = function(){
 	p.checkInternalCollisions = function(bullet){
 		for(var i = 0; i < this.enemies.length; i++){
 			if(this.enemies[i].type != "powerup" && app.Main.circleCollision(this.enemies[i],bullet)){
-				this.enemies[i].health --;
+				this.enemies[i].health -= bullet.damage;
 				bullet.remove = true;
 			}
 		}

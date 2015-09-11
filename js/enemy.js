@@ -18,6 +18,7 @@ app.Enemy = function(){
 		switch(this.difficulty){
 			case 0:
 				this.health = 2;
+				this.damage = 0.5;
 				this.fireRate = Math.random() * 2 + 3 ;
 				this.fireCoolDown = Math.random() * 2 - 1;
 				this.seekPoint = this.location;
@@ -26,23 +27,26 @@ app.Enemy = function(){
 				this.originalY = y;
 				this.xMul = 1;
 				this.health = 5;
+				this.damage = 1;
 				this.fireRate = Math.random() * 2 + 3 ;
 				this.fireCoolDown = Math.random() * 2 - 1;
 			break;
 		}
-		this.bullets = [];
 		this.location = vec2.fromValues(x,y);
 		this.velocity = vec2.create();
 		this.acceleration = vec2.create();
 		this.remove = false;
 	};
-	
+
 	var p = Enemy.prototype;
-	
+
 	p.update = function(dt,bossLoc,enemies){
 		if(this.health <= 0){
 			this.remove = true;
 			app.Main.entity.xp += this.xpScore;
+			if(app.Main.entity.xp >= app.Main.entity.xpCap){
+				app.Main.entity.levelUp();
+			}
 			if(parseInt(Math.random()*5) % 5 == 0){
 				app.Main.gameObjects.push(new app.Powerup(this.location[0],this.location[1],"fireRate","rgb(255,255,50)"));
 			}
@@ -59,30 +63,17 @@ app.Enemy = function(){
 			break;
 		}
 
-		for(var i = 0; i < this.bullets.length; i++){
-			this.bullets[i].update(dt);
-			if(app.Main.circleCollision(this.bullets[i],app.Main.entity)){
-				this.bullets[i].remove = true;
-				app.Main.entity.hit = true;
-				app.Main.entity.health --;
-			}
-			if(this.bullets[i].remove){
-    			this.bullets.splice(i,1);
-    			i -= 1;
-    		}
-		}
-
 		if(this.fireCoolDown >= this.fireRate){
 			this.fire = true;
 			this.fireCoolDown = 0;
 			var bulletDirection = app.Main.calculateBulletDirection(this.location,app.Main.entity.location,10);
 			bulletDirection[0] += Math.random() * 2 - 1;
 			bulletDirection[1] += Math.random() * 2 - 1;
-			this.bullets.push(new app.Bullet(this.location[0],this.location[1],
-				bulletDirection,"enemyBullet",this.col));
+			app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
+			 bulletDirection,this.damage,this.col));
 		}
 
-		//adds to fireCoolDown 
+		//adds to fireCoolDown
 		this.fireCoolDown += 1 * dt;
 	};
 
@@ -105,7 +96,7 @@ app.Enemy = function(){
 		}
 
 		this.location[0] += dt * 50 * this.xMul;
-		
+
 		this.location[1] = -Math.cos(this.location[0]/100)*50 + this.originalY;
 	}
 
@@ -114,12 +105,9 @@ app.Enemy = function(){
 		var y = this.location[1] - loc[1];
 		return vec2.fromValues(this.location[0]+y, this.location[1]-x);
 	};
-	
+
 	p.render = function(ctx){
 		app.draw.circle(ctx,this.location[0],this.location[1],this.health+this.radius,this.col);
-		for(var i = 0; i < this.bullets.length; i++){
-			this.bullets[i].render(ctx);
-		}
 	};
 
 	return Enemy;
