@@ -19,9 +19,9 @@ app.Enemy = function(){
 			case 0:
 				this.health = 2;
 				this.damage = 0.5;
+				this.seekPoint = this.location;
 				this.fireRate = Math.random() * 2 + 3 ;
 				this.fireCoolDown = Math.random() * 2 - 1;
-				this.seekPoint = this.location;
 			break;
 			case 1:
 				this.originalY = y;
@@ -30,6 +30,12 @@ app.Enemy = function(){
 				this.damage = 1;
 				this.fireRate = Math.random() * 2 + 3 ;
 				this.fireCoolDown = Math.random() * 2 - 1;
+			break;
+			case 2:
+				this.damage = 0.5;
+				this.health = 5;
+				this.fireRate = Math.random() * 2 + 1 ;
+				this.fireCoolDown = Math.random() * 2 - 1;	
 			break;
 		}
 		this.location = vec2.fromValues(x,y);
@@ -61,6 +67,9 @@ app.Enemy = function(){
 			case 1:
 				this.difficulty1(dt);
 			break;
+			case 2:
+				this.difficulty2(dt);
+			break;
 		}
 
 		if(this.fireCoolDown >= this.fireRate){
@@ -71,6 +80,16 @@ app.Enemy = function(){
 			bulletDirection[1] += Math.random() * 2 - 1;
 			app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
 			 bulletDirection,this.damage,this.col));
+			 if(this.difficulty == 2){
+			 	app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
+					vec2.fromValues(0,8),this.damage,this.col));
+					app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
+					vec2.fromValues(0,-8),this.damage,this.col));
+					app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
+					vec2.fromValues(8,0),this.damage,this.col));
+					app.Main.enemyBullets.push(new app.Bullet(this.location[0],this.location[1],
+					vec2.fromValues(-8,0),this.damage,this.col));
+			 }
 		}
 
 		//adds to fireCoolDown
@@ -98,7 +117,11 @@ app.Enemy = function(){
 		this.location[0] += dt * 50 * this.xMul;
 
 		this.location[1] = -Math.cos(this.location[0]/100)*50 + this.originalY;
-	}
+	};
+	
+	p.difficulty2 = function(dt){
+		
+	};
 
 	p.calculatePerpendicular = function(loc){
 		var x = this.location[0] - loc[0];
@@ -107,6 +130,8 @@ app.Enemy = function(){
 	};
 
 	p.render = function(ctx){
+		var timeToFire = this.fireRate - this.fireCoolDown;
+		app.draw.circle(ctx,this.location[0],this.location[1],this.health+this.radius + timeToFire,"#900");
 		app.draw.circle(ctx,this.location[0],this.location[1],this.health+this.radius,this.col);
 	};
 

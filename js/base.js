@@ -18,6 +18,9 @@ app.Base = function(){
 			if(parseInt(Math.random() * 10) % 10 == 0){
 				this.createPowerup();
 			}
+			if(parseInt(Math.random() * 10) % 4 == 0){
+				this.createStationaryEnemy();
+			}
 		}
 	};
 
@@ -51,13 +54,18 @@ app.Base = function(){
 	p.createCommonEnemy = function(){
 		//function(x,y,force,col,difficulty,radius,boundsX,boundsY,dimensions){
 		var loc = this.getAdjacentLocations();
-		this.enemies.push(new app.Enemy(loc[0],loc[1],0,"#5015B6",1,15,this.location[0]-225,this.location[1]-225,450));
+		this.enemies.push(new app.Enemy(loc[0],loc[1],0,"#5015B6",1,12,this.location[0]-225,this.location[1]-225,450));
+	};
+	
+	p.createStationaryEnemy = function(){
+		var loc = this.getAdjacentLocations();
+		this.enemies.push(new app.Enemy(loc[0],loc[1],0,"#201556",2,15,this.location[0]-225,this.location[1]-225,450));
 	};
 
 	p.createBoss = function(){
 		var loc = this.getAdjacentLocations();
 		this.enemies.push(new app.Boss(loc[0],loc[1],0,"#000"));
-	}
+	};
 
 	p.createPowerup = function(){
 		this.enemies.push(new app.Powerup(this.location[0],this.location[1],"health","rgb(255,0,0)"));

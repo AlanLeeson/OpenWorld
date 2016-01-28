@@ -46,7 +46,7 @@ app.Boss = function(){
 			if(this.health <= 0){
 				this.dead = true;
 				app.Main.enemiesLeft --;
-				app.Main.gameObjects.push(new app.Powerup(this.location[0],this.location[1],"fireRate","rgb(255,255,50)"));
+				app.Main.gameObjects.push(new app.Powerup(this.location[0],this.location[1],"dualShot","rgb(255,255,50)"));
 			}
 
 			switch(this.difficulty){

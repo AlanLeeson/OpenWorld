@@ -13,7 +13,7 @@ app.Entity = function(){
 		this.blinkDuration = 50;
 		this.blinkRate = 0;
 		this.health = 20;
-		this.maxHealth = 20;
+		this.maxHealth = this.health;
 		this.movementSpeed = 300;
 		this.damage = 2;
 		//a bullet will fire every quarter second
@@ -21,6 +21,8 @@ app.Entity = function(){
 		//this updates intil it reaches 0.25
 		this.fireCoolDown = 0;
 		this.fire = false;
+		this.dualShot = false;
+
 		this.KEYBOARD = {
 			"KEY_LEFT": 65,
 			"KEY_UP": 87,
@@ -83,13 +85,13 @@ app.Entity = function(){
 		this.fireRate = 0.25;
 		this.fire = false;
 		this.hit = false;
-		this.health = 20;
+		this.health = this.maxHealth;
 	};
 
 	p.levelUp = function(){
 		this.level ++;
-		this.health *= 1.075;
-		this.movementSpeed *= 1.05;
+		this.maxHealth = parseInt(this.maxHealth * 1.2);
+		this.health = this.maxHealth;
 		this.xpCap *= 1.3;
 		this.xp = 0;
 	};
